@@ -14,8 +14,8 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 class MainAdapter () : RecyclerView.Adapter<MainAdapter.ViewHolder> (){
-  var list = ArrayList<Item>()
-  fun setData(lists: ArrayList<Item>){
+  var list = mutableListOf<Item>()
+  fun setData(lists: MutableList<Item>){
     this.list = lists
   }
   inner class ViewHolder(private val binding: RowUsersBinding): RecyclerView.ViewHolder(binding.root){

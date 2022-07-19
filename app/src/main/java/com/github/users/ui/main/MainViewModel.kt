@@ -4,24 +4,50 @@ import android.annotation.SuppressLint
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.github.users.data.DataHandler
+import com.github.users.data.remote.models.Item
 import com.github.users.data.remote.models.UsersResponse
 import com.github.users.data.repository.UsersRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Observer
+import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.schedulers.Schedulers
 
-@SuppressLint("CheckResult")
-@HiltViewModel
-class MainViewModel @Inject constructor(private val repository: UsersRepository): ViewModel(){
-  private val _getDataHandlerState: MutableLiveData<DataHandler> = MutableLiveData()
-  val dataHandlerState: LiveData<DataHandler> = _getDataHandlerState
 
-  private val _getCurrentUsers: MutableLiveData<MutableList<UsersResponse>> = MutableLiveData()
-  val currentUsers: LiveData<MutableList<UsersResponse>> = _getCurrentUsers
+class MainViewModel (private val repository: UsersRepository): ViewModel(){
+  val usersList = MutableLiveData<List<Item>>()
+  val errorMessage = MutableLiveData<String>()
+  lateinit var disposable: Disposable
 
-  @SuppressLint("CheckResult")
-  fun getUsers(username: String){
-    repository.getSearchUsers(username)
-      .subscribe({_getDataHandlerState.value = DataHandler.Success(it)},{_getDataHandlerState.value = DataHandler.Failure(it.message)})
+
+  fun getSearchUsers(username: String) {
+
+    // observer subscribing to observable
+    val response = repository.getSearchUsers(username)
+    response.subscribeOn(Schedulers.io())
+      .observeOn(AndroidSchedulers.mainThread())
+      .subscribe(getMoviesListObserver())
   }
+
+  private fun getMoviesListObserver(): Observer<UsersResponse> {
+    return object : Observer<UsersResponse> {
+      override fun onComplete() {
+        //hide progress indicator .
+      }
+
+      override fun onError(e: Throwable) {
+        usersList.postValue(null)
+
+      }
+
+      override fun onNext(t: UsersResponse) {
+        usersList.postValue(t.items)
+      }
+
+      override fun onSubscribe(d: Disposable) {
+        disposable = d
+        //start showing progress indicator.
+      }
+    }
+  }
+
 }
